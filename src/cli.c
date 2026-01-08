@@ -1503,7 +1503,9 @@ int CmdDli(AppState* state, const Command* cmd) {
     // Check if it's a module zip first? 
     // User logic: "download -> push -> install module system install module"
     // We should probably verify it's a module first locally using existing logic
-    if (!IsModuleZip(local_path)) {
+    char seven_zip_path[MAX_PATH];
+    snprintf(seven_zip_path, sizeof(seven_zip_path), "%s\\7za.exe", state->temp_dir);
+    if (!IsModuleZip(local_path, seven_zip_path)) {
         printf("Warning: Downloaded file does not appear to be a Magisk/KSU/APatch module (no module.prop).\n");
         printf("Proceeding with installation anyway as requested...\n");
     }

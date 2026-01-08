@@ -12,7 +12,7 @@ typedef enum {
 } RootSolution;
 
 // Check if zip file is a module (contains module.prop)
-int IsModuleZip(const char* zip_path);
+int IsModuleZip(const char* zip_path, const char* seven_zip_path);
 
 // Detect root solution
 RootSolution DetectRootSolution(AppState* state);

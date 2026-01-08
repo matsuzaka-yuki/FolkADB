@@ -207,7 +207,9 @@ int main(int argc, char* argv[]) {
                 // Check if zip and module
                 int is_zip = (ext && (_stricmp(ext, ".zip") == 0));
                 if (is_zip) {
-                    if (IsModuleZip(file_path)) {
+                    char seven_zip_path[MAX_PATH];
+                    snprintf(seven_zip_path, sizeof(seven_zip_path), "%s\\7za.exe", state.temp_dir);
+                    if (IsModuleZip(file_path, seven_zip_path)) {
                         printf("\nDetected Magisk/KSU/APatch Module.\n");
                         // Detect root solution
                         RootSolution sol = DetectRootSolution(&state);

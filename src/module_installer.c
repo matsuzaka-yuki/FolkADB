@@ -4,18 +4,11 @@
 #include "utils.h"
 
 // Check if zip file is a module (contains module.prop)
-int IsModuleZip(const char* zip_path) {
-    if (!zip_path) return 0;
+int IsModuleZip(const char* zip_path, const char* seven_zip_path) {
+    if (!zip_path || !seven_zip_path) return 0;
 
-    // Locate 7za.exe
-    char seven_zip_path[MAX_PATH];
-    if (FileExists("bin\\7za.exe")) {
-        strcpy(seven_zip_path, "bin\\7za.exe");
-    } else if (FileExists("..\\bin\\7za.exe")) {
-        strcpy(seven_zip_path, "..\\bin\\7za.exe");
-    } else {
-        // Try to assume it's in the same dir as current executable if bin not found
-        // But for now, if not found, we can't check.
+    // Use passed 7za path
+    if (!FileExists(seven_zip_path)) {
         return 0; 
     }
 
