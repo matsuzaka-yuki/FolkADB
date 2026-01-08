@@ -1,0 +1,29 @@
+# Build artifacts
+build/
+*.o
+*.obj
+*.exe
+!bin/*.exe
+
+# Archives
+*.tar
+*.zip
+*.rar
+*.7z
+!bin/7za.exe
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude/
+
+# Temporary files
+tmp/
+*.log
