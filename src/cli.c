@@ -13,6 +13,9 @@
 // Forward declarations
 int CmdDli(AppState* state, const Command* cmd);
 
+// Forward declaration for helper function
+static int CountNewlines(const char* str);
+
 // Track if prompt needs to be refreshed
 static volatile int g_prompt_needs_refresh = 0;
 
@@ -62,20 +65,229 @@ void ShowBanner(void) {
 
 // Get prompt string without newline
 void GetPromptString(const AppState* state, char* buffer, size_t size) {
+    char device_str[64] = "no device";
+    const char* mode_str = (state->current_mode == MODE_FASTBOOT) ? "fastboot" : "adb";
+    
+    // Get device ID
     if (state->current_mode == MODE_FASTBOOT) {
         AdbDevice* device = GetSelectedFastbootDevice(state);
-        if (device) {
-            snprintf(buffer, size, "fastboot [%s]> ", device->serial_id);
-        } else {
-            snprintf(buffer, size, "fastboot [no device]> ");
-        }
+        if (device) strncpy(device_str, device->serial_id, sizeof(device_str)-1);
     } else {
         AdbDevice* device = GetSelectedDevice(state);
-        if (device) {
-            snprintf(buffer, size, "adb [%s]> ", device->serial_id);
-        } else {
-            snprintf(buffer, size, "adb [no device]> ");
-        }
+        if (device) strncpy(device_str, device->serial_id, sizeof(device_str)-1);
+    }
+
+    switch (state->current_theme) {
+        case THEME_ROBBYRUSSELL:
+            // ➜  mode git:(device) ✗
+            // Using simplified ASCII arrow ->
+            // Color scheme: Arrow (green/red), mode (cyan), device (blue)
+            snprintf(buffer, size, ANSI_BOLD ANSI_GREEN "-> " ANSI_RESET ANSI_CYAN "%s" ANSI_RESET " device:(" ANSI_BRIGHT_BLUE "%s" ANSI_RESET ") " ANSI_YELLOW ">>> " ANSI_RESET, mode_str, device_str);
+            break;
+            
+        case THEME_AGNOSTER:
+            // mode | device >
+            // Blue background for context
+            snprintf(buffer, size, ANSI_BG_BLUE ANSI_BOLD ANSI_WHITE " %s | %s " ANSI_RESET ANSI_BLUE "\x10" ANSI_RESET " ", mode_str, device_str);
+            // Fallback if \x10 (triangle) doesn't look right: >
+            // snprintf(buffer, size, ANSI_BG_BLUE ANSI_BOLD ANSI_WHITE " %s | %s " ANSI_RESET ANSI_BLUE ">" ANSI_RESET " ", mode_str, device_str);
+            break;
+
+        case THEME_MINIMAL:
+            // Minimal: device >
+            snprintf(buffer, size, ANSI_CYAN "%s" ANSI_RESET " " ANSI_BOLD ANSI_MAGENTA "> " ANSI_RESET, device_str);
+            break;
+
+        case THEME_PURE:
+            // Pure: Two-line prompt
+            // mode device
+            // >
+            // Remove leading \n completely, handled by DisplayPrompt logic if needed
+            snprintf(buffer, size, ANSI_BOLD ANSI_MAGENTA "%s" ANSI_RESET " " ANSI_CYAN "%s" ANSI_RESET "\n" ANSI_BOLD ANSI_MAGENTA "> " ANSI_RESET, mode_str, device_str);
+            break;
+
+        case THEME_NEON:
+            // Neon: [mode] device >> (Bright colors)
+            snprintf(buffer, size, ANSI_BRIGHT_MAGENTA "[" ANSI_BRIGHT_CYAN "%s" ANSI_BRIGHT_MAGENTA "]" ANSI_RESET " " ANSI_BRIGHT_GREEN "%s" ANSI_RESET ANSI_BRIGHT_YELLOW " >> " ANSI_RESET, mode_str, device_str);
+            break;
+
+        case THEME_DRACULA:
+            // Dracula: purple/pink theme
+            snprintf(buffer, size, ANSI_MAGENTA "%s" ANSI_RESET " " ANSI_BRIGHT_MAGENTA "\x10" ANSI_RESET " " ANSI_CYAN "%s" ANSI_RESET " " ANSI_BRIGHT_GREEN "$ " ANSI_RESET, mode_str, device_str);
+            break;
+
+        case THEME_MATRIX:
+            // Matrix: All green
+            snprintf(buffer, size, ANSI_GREEN "%s@%s: " ANSI_BOLD "> " ANSI_RESET, mode_str, device_str);
+            break;
+
+        case THEME_CYBERPUNK:
+            // Cyberpunk: Yellow/Blue/Red
+            snprintf(buffer, size, ANSI_BG_BLUE ANSI_YELLOW " %s " ANSI_BG_RESET ANSI_BLUE "\x10" ANSI_RESET " " ANSI_RED "%s" ANSI_RESET ANSI_BRIGHT_YELLOW " > " ANSI_RESET, mode_str, device_str);
+            break;
+
+        case THEME_SUNSET:
+            // Sunset: Red/Magenta/Yellow
+            snprintf(buffer, size, ANSI_RED "%s" ANSI_RESET ANSI_MAGENTA " ~ " ANSI_RESET ANSI_YELLOW "%s" ANSI_RESET " $ ", mode_str, device_str);
+            break;
+
+        case THEME_FOREST:
+            // Forest: Green/Yellow
+            snprintf(buffer, size, ANSI_GREEN "%s" ANSI_RESET ANSI_BRIGHT_GREEN " >> " ANSI_RESET ANSI_YELLOW "%s" ANSI_RESET " > ", mode_str, device_str);
+            break;
+
+        case THEME_OCEAN:
+            // Ocean: Blue/Cyan
+            snprintf(buffer, size, ANSI_BLUE "%s" ANSI_RESET ANSI_CYAN " :: " ANSI_RESET ANSI_BRIGHT_BLUE "%s" ANSI_RESET " ~> ", mode_str, device_str);
+            break;
+
+        case THEME_RETRO:
+            // Retro: Amber color (using yellow)
+            snprintf(buffer, size, ANSI_YELLOW "C:\\%s\\%s> " ANSI_RESET, mode_str, device_str);
+            break;
+
+        case THEME_MONOKAI:
+            // Monokai: Pink/Green/Blue
+            // Removed special char to fix encoding
+            snprintf(buffer, size, ANSI_MAGENTA "%s" ANSI_RESET " " ANSI_GREEN "%s" ANSI_RESET " " ANSI_CYAN ">" ANSI_RESET " ", mode_str, device_str);
+            break;
+
+        case THEME_UBUNTU:
+            // Ubuntu: user@host:~$ 
+            // Green user, White @, Green host, Blue path, White $
+            snprintf(buffer, size, ANSI_GREEN "user" ANSI_RESET "@" ANSI_GREEN "%s" ANSI_RESET ":" ANSI_BLUE "~" ANSI_RESET "$ ", device_str);
+            break;
+
+        case THEME_KALI:
+            // Kali: ┌──(user㉿host)-[~]
+            //       └─$
+            snprintf(buffer, size, ANSI_BLUE "┌──(" ANSI_BOLD ANSI_RED "%s" ANSI_RESET ANSI_BLUE ")" ANSI_RESET "-" ANSI_BLUE "[~]" ANSI_RESET "\n" ANSI_BLUE "└─" ANSI_BLUE "$" ANSI_RESET " ", device_str);
+            break;
+
+        case THEME_ARCH:
+            // Arch: user@arch ~ %
+            snprintf(buffer, size, ANSI_CYAN "%s" ANSI_RESET "@" ANSI_BOLD "arch" ANSI_RESET " " ANSI_MAGENTA "~" ANSI_RESET " %% ", device_str);
+            break;
+
+        case THEME_GENTOO:
+            // Gentoo: root@gentoo ~ #
+            snprintf(buffer, size, ANSI_RED "root" ANSI_RESET "@" ANSI_GREEN "%s" ANSI_RESET " " ANSI_BLUE "~" ANSI_RESET " # ", device_str);
+            break;
+
+        case THEME_ROOT:
+            // Root: # 
+            snprintf(buffer, size, ANSI_BOLD ANSI_RED "# " ANSI_RESET);
+            break;
+
+        case THEME_DEBIAN:
+            // Debian: user@debian:~$ (Red/White)
+            snprintf(buffer, size, ANSI_RED "🌀" ANSI_RESET " " ANSI_GREEN "user" ANSI_RESET "@" ANSI_RED "debian" ANSI_RESET ":" ANSI_BLUE "~" ANSI_RESET "$ ");
+            break;
+
+        case THEME_FEDORA:
+            // Fedora: [user@fedora ~]$ (Blue/White)
+            snprintf(buffer, size, "[" ANSI_BLUE "user" ANSI_RESET "@" ANSI_BLUE "fedora" ANSI_RESET " " ANSI_WHITE "%s" ANSI_RESET "]$ ", device_str);
+            break;
+
+        case THEME_CENTOS:
+            // CentOS: [user@centos ~]# (Green/Yellow/Blue)
+            snprintf(buffer, size, "[" ANSI_GREEN "user" ANSI_RESET "@" ANSI_YELLOW "centos" ANSI_RESET " " ANSI_BLUE "%s" ANSI_RESET "]# ", device_str);
+            break;
+
+        case THEME_MANJARO:
+            // Manjaro: [user@manjaro ~]$ (Green/Teal)
+            snprintf(buffer, size, "[" ANSI_GREEN "user" ANSI_RESET "@" ANSI_GREEN "manjaro" ANSI_RESET " " ANSI_CYAN "%s" ANSI_RESET "]$ ", device_str);
+            break;
+
+        case THEME_MINT:
+            // Mint: user@mint ~ $ (Green)
+            snprintf(buffer, size, ANSI_GREEN "mint" ANSI_RESET "@" ANSI_GREEN "%s" ANSI_RESET " " ANSI_BLUE "~" ANSI_RESET " $ ", device_str);
+            break;
+
+        case THEME_ALPINE:
+            // Alpine: alpine:~$ (Blue)
+            snprintf(buffer, size, ANSI_BLUE "alpine" ANSI_RESET ":" ANSI_CYAN "%s" ANSI_RESET "$ ", device_str);
+            break;
+
+        case THEME_STARWARS:
+            // StarWars: empire@deathstar:~$ 
+            snprintf(buffer, size, ANSI_RED "empire" ANSI_RESET "@" ANSI_BOLD "deathstar" ANSI_RESET ":" ANSI_BLUE "%s" ANSI_RESET "$ ", device_str);
+            break;
+
+        case THEME_HACKER:
+            // Hacker: root@mainframe:/access# (Green Matrix style)
+            snprintf(buffer, size, ANSI_BOLD ANSI_GREEN "root@mainframe" ANSI_RESET ":" ANSI_GREEN "/%s" ANSI_RESET "# ", device_str);
+            break;
+
+        case THEME_GLITCH:
+            // Glitch: [?_?] user@sys ~ $
+            snprintf(buffer, size, ANSI_MAGENTA "[?_?]" ANSI_RESET " " ANSI_CYAN "sys" ANSI_RESET "@" ANSI_YELLOW "%s" ANSI_RESET " $ ", device_str);
+            break;
+
+        case THEME_ALIEN:
+            // Alien: 👽 user@ufo:~$
+            snprintf(buffer, size, "👽 " ANSI_GREEN "alien" ANSI_RESET "@" ANSI_GREEN "%s" ANSI_RESET ":" ANSI_BLUE "~" ANSI_RESET "$ ", device_str);
+            break;
+
+        case THEME_MACOS:
+            // MacOS: user@MacBook ~ %
+            snprintf(buffer, size, ANSI_GREEN "user" ANSI_RESET "@" ANSI_BOLD "%s" ANSI_RESET " " ANSI_BLUE "~" ANSI_RESET " %% ", device_str);
+            break;
+
+        case THEME_FREEBSD:
+            // FreeBSD: user@freebsd:~ $ (Red/White)
+            snprintf(buffer, size, ANSI_RED "root" ANSI_RESET "@" ANSI_WHITE "freebsd" ANSI_RESET ":" ANSI_BLUE "~" ANSI_RESET " # ");
+            break;
+
+        case THEME_SOLARIS:
+            // Solaris: user@solaris:~ $ 
+            snprintf(buffer, size, ANSI_YELLOW "%s" ANSI_RESET ":" ANSI_CYAN "~" ANSI_RESET " $ ", device_str);
+            break;
+
+        case THEME_WINDOWS11:
+            // Windows 11 PowerShell: PS C:\adb>
+            snprintf(buffer, size, ANSI_BLUE "PS" ANSI_RESET " " ANSI_YELLOW "C:\\adb\\%s" ANSI_RESET "> ", device_str);
+            break;
+
+        case THEME_MSDOS:
+            // MS-DOS: C:\ADB>
+            snprintf(buffer, size, "C:\\ADB\\%s> ", device_str);
+            break;
+
+        case THEME_FISH:
+            // Fish: user@host ~>
+            snprintf(buffer, size, ANSI_GREEN "user" ANSI_RESET "@" ANSI_YELLOW "%s" ANSI_RESET " " ANSI_BLUE "~" ANSI_RESET "> ", device_str);
+            break;
+
+        case THEME_ZSH_SIMPLE:
+            // Zsh Simple: %
+            snprintf(buffer, size, ANSI_BOLD "%% " ANSI_RESET);
+            break;
+
+        case THEME_BASH_SIMPLE:
+            // Bash Simple: bash-5.2$
+            snprintf(buffer, size, "bash-5.2$ ");
+            break;
+
+        case THEME_CLOUD:
+            // Cloud: ☁️  user@cloud:dir $
+            snprintf(buffer, size, "☁️  " ANSI_CYAN "user" ANSI_RESET "@" ANSI_MAGENTA "cloud" ANSI_RESET ":" ANSI_BLUE "~" ANSI_RESET " $ ");
+            break;
+
+        case THEME_IRONMAN:
+            // IronMan: 🦾 JARVIS@Mark85:~$ (Red/Gold)
+            snprintf(buffer, size, "🦾 " ANSI_RED "JARVIS" ANSI_RESET "@" ANSI_YELLOW "Mark85" ANSI_RESET ":" ANSI_CYAN "%s" ANSI_RESET " $ ", device_str);
+            break;
+
+        case THEME_POWERLEVEL:
+            // Powerlevel: Complex powerline
+            snprintf(buffer, size, ANSI_BG_BLUE ANSI_WHITE " %s " ANSI_BG_RESET ANSI_BLUE "\x10" ANSI_BG_RESET " " ANSI_CYAN "%s" ANSI_RESET " \x10 ", mode_str, device_str);
+            break;
+
+        case THEME_DEFAULT:
+        default:
+            snprintf(buffer, size, ANSI_GREEN "%s" ANSI_RESET " [" ANSI_YELLOW "%s" ANSI_RESET "]> ", mode_str, device_str);
+            break;
     }
 }
 
@@ -83,7 +295,14 @@ void GetPromptString(const AppState* state, char* buffer, size_t size) {
 void DisplayPrompt(const AppState* state) {
     char buffer[256];
     GetPromptString(state, buffer, sizeof(buffer));
-    printf("\n%s", buffer);
+    
+    // Check if theme is multiline (Pure, Kali)
+    // Multiline prompts might need a preceding newline if they don't start with one,
+    // to separate from previous command output.
+    // However, GetPromptString should NOT include leading newline to avoid double spacing issue.
+    // DisplayPrompt adds one newline before printing the prompt.
+    // Update: User requested to remove automatic newline.
+    printf("%s", buffer);
     fflush(stdout);
 }
 
@@ -119,6 +338,7 @@ void ShowHelp(AppState* state) {
         printf("  reboot [mode]            Reboot device (system/recovery/bootloader)\n");
         printf("  dli <url>                Download, push and install module from URL\n");
         printf("  shizuku                  Activate Shizuku (requires installed app)\n");
+        printf("  theme <name>             Switch prompt theme (robbyrussell/agnoster/minimal/pure)\n");
     } else {
         printf("Fastboot Commands:\n");
         printf("  devices           List fastboot devices\n");
@@ -143,6 +363,7 @@ void ShowHelp(AppState* state) {
     printf("  help, ?                  Show this help message\n");
     printf("  version                  Show version information\n");
     printf("  cls                      Clear screen\n");
+    printf("  cmd                      Enter Windows Command Prompt (type 'exit' to return)\n");
     printf("  exit, quit               Exit program\n");
     printf("\n");
     printf("Note: Auto device monitoring is enabled by default (3s interval)\n");
@@ -258,6 +479,8 @@ static int DispatchAdbSubcommand(AppState* state, const char* subcommand, const 
         return CmdDli(state, &subcmd);
     } else if (strcmp(subcommand, "shizuku") == 0) {
         return CmdShizuku(state, &subcmd);
+    } else if (strcmp(subcommand, "theme") == 0) {
+        return CmdTheme(state, &subcmd);
     }
 
     return 0; // Not an ADB command
@@ -469,6 +692,8 @@ int ExecuteCommand(AppState* state, const Command* cmd) {
         return CmdVersion(state, cmd);
     } else if (strcmp(cmd->name, "cls") == 0) {
         return CmdCls(state, cmd);
+    } else if (strcmp(cmd->name, "cmd") == 0) {
+        return CmdCmd(state, cmd);
     } else if (strcmp(cmd->name, "exit") == 0 || strcmp(cmd->name, "quit") == 0) {
         return -1; // Signal to exit
     }
@@ -909,6 +1134,225 @@ int CmdShizuku(AppState* state, const Command* cmd) {
     return 1;
 }
 
+// Command: theme
+int CmdTheme(AppState* state, const Command* cmd) {
+    if (strlen(cmd->args) == 0) {
+        // Interactive selection mode with live preview
+        const char* theme_names[] = {
+            "Default", "RobbyRussell", "Agnoster", "Minimal", "Pure",
+            "Neon", "Dracula", "Matrix", "Cyberpunk", "Sunset",
+            "Forest", "Ocean", "Retro", "Monokai", "Powerlevel",
+            "Ubuntu", "Kali", "Arch", "Gentoo", "Root",
+            "Debian", "Fedora", "CentOS", "Manjaro", "Mint",
+            "Alpine", "StarWars", "Hacker", "Glitch", "Alien",
+            "MacOS", "FreeBSD", "Solaris", "Windows11", "MSDOS",
+            "Fish", "ZshSimple", "BashSimple", "Cloud", "IronMan"
+        };
+        ThemeMode theme_values[] = {
+            THEME_DEFAULT, THEME_ROBBYRUSSELL, THEME_AGNOSTER, THEME_MINIMAL, THEME_PURE,
+            THEME_NEON, THEME_DRACULA, THEME_MATRIX, THEME_CYBERPUNK, THEME_SUNSET,
+            THEME_FOREST, THEME_OCEAN, THEME_RETRO, THEME_MONOKAI, THEME_POWERLEVEL,
+            THEME_UBUNTU, THEME_KALI, THEME_ARCH, THEME_GENTOO, THEME_ROOT,
+            THEME_DEBIAN, THEME_FEDORA, THEME_CENTOS, THEME_MANJARO, THEME_MINT,
+            THEME_ALPINE, THEME_STARWARS, THEME_HACKER, THEME_GLITCH, THEME_ALIEN,
+            THEME_MACOS, THEME_FREEBSD, THEME_SOLARIS, THEME_WINDOWS11, THEME_MSDOS,
+            THEME_FISH, THEME_ZSH_SIMPLE, THEME_BASH_SIMPLE, THEME_CLOUD, THEME_IRONMAN
+        };
+        int count = 40;
+        int current_idx = 0;
+
+        // Find current index
+        for (int i = 0; i < count; i++) {
+            if (state->current_theme == theme_values[i]) {
+                current_idx = i;
+                break;
+            }
+        }
+
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        // Hide cursor
+        CONSOLE_CURSOR_INFO cursorInfo;
+        GetConsoleCursorInfo(hOut, &cursorInfo);
+        BOOL originalVisible = cursorInfo.bVisible;
+        cursorInfo.bVisible = FALSE;
+        SetConsoleCursorInfo(hOut, &cursorInfo);
+
+        printf("\n");
+        printf("========================================\n");
+        printf("          Theme Selection\n");
+        printf("========================================\n");
+        printf("Use Arrow Keys to navigate, Enter to confirm, Esc to cancel\n");
+        printf("\n");
+
+        int header_lines = 6; // Number of lines before the theme list
+        int visible_count = 10; // Max visible themes at once
+        int scroll_offset = 0; // Current scroll offset
+
+        // Adjust initial scroll offset if current theme is out of view
+        if (current_idx >= visible_count) {
+            scroll_offset = current_idx - visible_count + 1;
+        }
+
+        int running = 1;
+
+        while (running) {
+            // Adjust scroll offset based on current selection
+            if (current_idx < scroll_offset) {
+                scroll_offset = current_idx;
+            } else if (current_idx >= scroll_offset + visible_count) {
+                scroll_offset = current_idx - visible_count + 1;
+            }
+
+            // Display theme list (windowed)
+            for (int i = 0; i < visible_count; i++) {
+                int idx = scroll_offset + i;
+                if (idx >= count) break; // Should not happen if logic is correct
+
+                if (idx == current_idx) {
+                    printf(ANSI_GREEN "  > %s" ANSI_RESET " (current)\033[K\n", theme_names[idx]);
+                } else {
+                    printf("    %s\033[K\n", theme_names[idx]);
+                }
+            }
+
+            // Display scroll indicators if needed
+            // (Optional, but helpful: maybe add arrows in header/footer? 
+            // For now let's keep it simple to match line counts)
+
+            // Display preview section
+            printf("\033[K\n");
+            printf("────────────────────────────────────────\033[K\n");
+            printf("Preview (command example):\033[K\n");
+
+            // Temporarily set theme to preview
+            ThemeMode saved_theme = state->current_theme;
+            state->current_theme = theme_values[current_idx];
+            char preview_prompt[256];
+            GetPromptString(state, preview_prompt, sizeof(preview_prompt));
+            state->current_theme = saved_theme; // Restore original theme
+
+            int preview_newlines = CountNewlines(preview_prompt);
+            
+            printf("\033[0J"); // Clear everything below "Preview (command example):"
+            
+            printf("%s", preview_prompt);
+            printf("install module.apk\n"); // Example command
+            printf("────────────────────────────────────────\n");
+
+            // Calculate preview lines:
+            // 1. Empty line (Line 1093)
+            // 2. Separator line (Line 1094)
+            // 3. Title line (Line 1095)
+            // 4. Prompt + Command line(s) (Line 1124-1125) -> preview_newlines + 1
+            // 5. Bottom separator line (Line 1126)
+            int lines_below_list = 5 + preview_newlines; 
+            int total_lines_to_move_up = visible_count + lines_below_list;
+
+            // Wait for input
+            int ch = _getch();
+            if (ch == 0 || ch == 224) { // Arrow keys
+                int arrow = _getch();
+                switch (arrow) {
+                    case 72: // Up
+                        current_idx--;
+                        if (current_idx < 0) current_idx = count - 1;
+                        break;
+                    case 80: // Down
+                        current_idx++;
+                        if (current_idx >= count) current_idx = 0;
+                        break;
+                }
+            } else if (ch == 13) { // Enter
+                state->current_theme = theme_values[current_idx];
+                SaveConfig(state->current_theme);
+
+                // Clear the theme selection UI
+                // We are currently at the bottom.
+                printf("\033[%dA", total_lines_to_move_up + header_lines);
+                printf("\033[0J");
+
+                printf(ANSI_GREEN "✓" ANSI_RESET " Theme set to %s\n", theme_names[current_idx]);
+                running = 0;
+                break;
+            } else if (ch == 27) { // Esc
+                // Clear the theme selection UI
+                printf("\033[%dA", total_lines_to_move_up + header_lines);
+                printf("\033[0J");
+
+                printf(ANSI_YELLOW "⊘" ANSI_RESET " Theme selection cancelled\n");
+                running = 0;
+                break;
+            }
+
+            // Move cursor back up to overwrite list and preview
+            printf("\033[%dA", total_lines_to_move_up);
+        }
+
+        // Restore cursor
+        cursorInfo.bVisible = originalVisible;
+        SetConsoleCursorInfo(hOut, &cursorInfo);
+
+        return 1;
+    }
+
+    char name[64];
+    strncpy(name, cmd->args, sizeof(name)-1);
+    StringToLower(name);
+
+    ThemeMode new_theme = THEME_DEFAULT;
+
+    if (strcmp(name, "default") == 0) new_theme = THEME_DEFAULT;
+    else if (strcmp(name, "robbyrussell") == 0) new_theme = THEME_ROBBYRUSSELL;
+    else if (strcmp(name, "agnoster") == 0) new_theme = THEME_AGNOSTER;
+    else if (strcmp(name, "minimal") == 0) new_theme = THEME_MINIMAL;
+    else if (strcmp(name, "pure") == 0) new_theme = THEME_PURE;
+    else if (strcmp(name, "neon") == 0) new_theme = THEME_NEON;
+    else if (strcmp(name, "dracula") == 0) new_theme = THEME_DRACULA;
+    else if (strcmp(name, "matrix") == 0) new_theme = THEME_MATRIX;
+    else if (strcmp(name, "cyberpunk") == 0) new_theme = THEME_CYBERPUNK;
+    else if (strcmp(name, "sunset") == 0) new_theme = THEME_SUNSET;
+    else if (strcmp(name, "forest") == 0) new_theme = THEME_FOREST;
+    else if (strcmp(name, "ocean") == 0) new_theme = THEME_OCEAN;
+    else if (strcmp(name, "retro") == 0) new_theme = THEME_RETRO;
+    else if (strcmp(name, "monokai") == 0) new_theme = THEME_MONOKAI;
+    else if (strcmp(name, "powerlevel") == 0) new_theme = THEME_POWERLEVEL;
+    else if (strcmp(name, "ubuntu") == 0) new_theme = THEME_UBUNTU;
+    else if (strcmp(name, "kali") == 0) new_theme = THEME_KALI;
+    else if (strcmp(name, "arch") == 0) new_theme = THEME_ARCH;
+    else if (strcmp(name, "gentoo") == 0) new_theme = THEME_GENTOO;
+    else if (strcmp(name, "root") == 0) new_theme = THEME_ROOT;
+    else if (strcmp(name, "debian") == 0) new_theme = THEME_DEBIAN;
+    else if (strcmp(name, "fedora") == 0) new_theme = THEME_FEDORA;
+    else if (strcmp(name, "centos") == 0) new_theme = THEME_CENTOS;
+    else if (strcmp(name, "manjaro") == 0) new_theme = THEME_MANJARO;
+    else if (strcmp(name, "mint") == 0) new_theme = THEME_MINT;
+    else if (strcmp(name, "alpine") == 0) new_theme = THEME_ALPINE;
+    else if (strcmp(name, "starwars") == 0) new_theme = THEME_STARWARS;
+    else if (strcmp(name, "hacker") == 0) new_theme = THEME_HACKER;
+    else if (strcmp(name, "glitch") == 0) new_theme = THEME_GLITCH;
+    else if (strcmp(name, "alien") == 0) new_theme = THEME_ALIEN;
+    else if (strcmp(name, "macos") == 0) new_theme = THEME_MACOS;
+    else if (strcmp(name, "freebsd") == 0) new_theme = THEME_FREEBSD;
+    else if (strcmp(name, "solaris") == 0) new_theme = THEME_SOLARIS;
+    else if (strcmp(name, "windows11") == 0) new_theme = THEME_WINDOWS11;
+    else if (strcmp(name, "msdos") == 0) new_theme = THEME_MSDOS;
+    else if (strcmp(name, "fish") == 0) new_theme = THEME_FISH;
+    else if (strcmp(name, "zshsimple") == 0) new_theme = THEME_ZSH_SIMPLE;
+    else if (strcmp(name, "bashsimple") == 0) new_theme = THEME_BASH_SIMPLE;
+    else if (strcmp(name, "cloud") == 0) new_theme = THEME_CLOUD;
+    else if (strcmp(name, "ironman") == 0) new_theme = THEME_IRONMAN;
+    else {
+        printf("Unknown theme: %s\n", name);
+        return 1;
+    }
+
+    state->current_theme = new_theme;
+    SaveConfig(new_theme);
+    printf("Theme set to %s\n", name);
+    return 1;
+}
+
 // Command: reboot
 int CmdReboot(AppState* state, const Command* cmd) {
     // Check current mode and route to appropriate reboot function
@@ -976,6 +1420,31 @@ int CmdVersion(AppState* state, const Command* cmd) {
 int CmdCls(AppState* state, const Command* cmd) {
     system("cls");
     ShowBanner();
+    return 1;
+}
+
+// Command: cmd
+int CmdCmd(AppState* state, const Command* cmd) {
+    printf("Entering Windows Command Prompt...\n");
+    printf("Type 'exit' to return to FolkADB.\n");
+    
+    // Save current title
+    char old_title[MAX_PATH] = {0};
+    GetConsoleTitleA(old_title, sizeof(old_title));
+    
+    SetConsoleTitleA("Windows Command Prompt (FolkADB)");
+    
+    system("cmd");
+    
+    // Restore title
+    if (old_title[0]) {
+        SetConsoleTitleA(old_title);
+    }
+    
+    // Clear screen and restore banner
+    system("cls");
+    ShowBanner();
+    
     return 1;
 }
 
@@ -1131,6 +1600,16 @@ int HandleDragDropInput(AppState* state, char* input) {
 #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #endif
 
+// Count newlines in a string
+static int CountNewlines(const char* str) {
+    int count = 0;
+    while (*str) {
+        if (*str == '\n') count++;
+        str++;
+    }
+    return count;
+}
+
 // Clear current line using Windows API or fallback
 void ClearLine() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -1145,16 +1624,40 @@ void ClearLine() {
     }
 }
 
+// Clear multiline prompt and input
+void ClearMultilinePrompt(const char* prompt) {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (!GetConsoleScreenBufferInfo(hOut, &csbi)) {
+        ClearLine();
+        return;
+    }
+
+    // Count newlines in prompt
+    int newlines = CountNewlines(prompt);
+
+    // Move cursor up to the start of the prompt
+    if (newlines > 0) {
+        printf("\033[%dA", newlines);
+    }
+
+    // Move to beginning of line
+    printf("\r");
+
+    // Clear from cursor to end of screen
+    printf("\033[0J");
+}
+
 static const char* ADB_COMMANDS[] = {
     "devices", "dev", "select", "info", "push", "pull", "ls", "rm", "mkdir",
-    "shell", "sudo", "install", "uninstall", "reboot", "dli", "shizuku",
-    "help", "version", "cls", "exit", "quit", NULL
+    "shell", "sudo", "install", "uninstall", "reboot", "dli", "shizuku", "theme",
+    "help", "version", "cls", "cmd", "exit", "quit", NULL
 };
 
 static const char* FASTBOOT_COMMANDS[] = {
     "devices", "select", "info", "flash", "erase", "format", "unlock",
     "lock", "oem", "reboot", "getvar", "activate", "wipe",
-    "help", "version", "cls", "exit", "quit", NULL
+    "help", "version", "cls", "cmd", "exit", "quit", NULL
 };
 
 static const char* REBOOT_MODES[] = {
@@ -1380,17 +1883,60 @@ void RunInteractiveLoop(AppState* state) {
     SetPromptRefreshCallback(RefreshPromptCallback);
 
     g_current_history_view = -1;
+    
+    // Track last displayed prompt to avoid unnecessary repaints
+    char last_displayed_prompt[256] = {0};
 
     while (1) {
         // Show prompt if not shown or needs refresh
         if (!prompt_shown || g_prompt_needs_refresh) {
+            
+            // Check if we actually need to repaint (content changed)
             if (g_prompt_needs_refresh && prompt_shown) {
-                ClearLine();
+                char check_prompt[256];
+                GetPromptString(state, check_prompt, sizeof(check_prompt));
+                if (strcmp(check_prompt, last_displayed_prompt) == 0) {
+                    // Content is identical, skip repaint to prevent flickering/stacking
+                    g_prompt_needs_refresh = 0;
+                    goto input_check;
+                }
+            }
+
+            if (g_prompt_needs_refresh && prompt_shown) {
+                // If refreshing (e.g. from thread), we need to clear properly.
+                // New Approach: Use ANSI Erase in Display (J) which is more robust
+                // for multi-line prompts than trying to clear line-by-line.
+
+                // 1. Calculate height of the *previous* prompt (what's currently on screen)
+                int prev_newlines = 0;
+                for (int i = 0; last_displayed_prompt[i]; i++) {
+                    if (last_displayed_prompt[i] == '\n') prev_newlines++;
+                }
+
+                // 2. Move cursor up to the start of the prompt
+                if (prev_newlines > 0) {
+                     printf("\033[%dA", prev_newlines);
+                }
+                
+                // 3. Move to beginning of line
+                printf("\r");
+                
+                // 4. Clear everything from cursor down
+                printf("\033[0J");
+
+                // 5. Get and print the new prompt
                 char prompt[256];
                 GetPromptString(state, prompt, sizeof(prompt));
-                printf("%s", prompt);
+                printf("%s", prompt); 
+                
+                // Update tracker
+                strncpy(last_displayed_prompt, prompt, sizeof(last_displayed_prompt)-1);
             } else {
                 DisplayPrompt(state);
+                // Update tracker
+                char p[256];
+                GetPromptString(state, p, sizeof(p));
+                strncpy(last_displayed_prompt, p, sizeof(last_displayed_prompt)-1);
             }
             
             prompt_shown = 1;
@@ -1406,6 +1952,7 @@ void RunInteractiveLoop(AppState* state) {
             fflush(stdout);
         }
 
+input_check:;
         // Use PeekConsoleInput to check for events without blocking
         DWORD numEvents = 0;
         if (GetNumberOfConsoleInputEvents(hIn, &numEvents) && numEvents > 0) {
@@ -1447,9 +1994,19 @@ void RunInteractiveLoop(AppState* state) {
                                     input_pos = (int)strlen(input);
                                     
                                     // Repaint prompt with new input
-                                    ClearLine();
                                     char prompt_str[256];
                                     GetPromptString(state, prompt_str, sizeof(prompt_str));
+
+                                    // Check if prompt is multiline
+                                    int prompt_newlines = CountNewlines(prompt_str);
+                                    if (prompt_newlines > 0) {
+                                        // Use multiline-aware clear
+                                        ClearMultilinePrompt(prompt_str);
+                                    } else {
+                                        // Use simple clear for single-line prompts
+                                        ClearLine();
+                                    }
+
                                     printf("%s%s", prompt_str, input);
                                     fflush(stdout);
                                     
@@ -1564,15 +2121,25 @@ void RunInteractiveLoop(AppState* state) {
                 }
 
                 if (needs_repaint) {
-                    ClearLine();
                     char prompt_str[256];
                     GetPromptString(state, prompt_str, sizeof(prompt_str));
+
+                    // Check if prompt is multiline
+                    int newlines = CountNewlines(prompt_str);
+                    if (newlines > 0) {
+                        // Use multiline-aware clear
+                        ClearMultilinePrompt(prompt_str);
+                    } else {
+                        // Use simple clear for single-line prompts
+                        ClearLine();
+                    }
+
                     printf("%s", prompt_str);
-                    
+
                     int apks = CountApks(input);
                     if (apks > 0) printf("%d APKs selected. Press Enter to install.", apks);
                     else printf("%s", input);
-                    
+
                     fflush(stdout);
                 }
             }

@@ -37,6 +37,7 @@ static int Initialize(AppState* state) {
     state->current_device_index = -1;
     state->current_fastboot_device_index = -1;
     state->current_mode = MODE_ADB;
+    state->current_theme = (ThemeMode)LoadConfig();
 
     // Show banner
     ShowBanner();

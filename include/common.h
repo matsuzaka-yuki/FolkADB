@@ -62,6 +62,50 @@ typedef struct {
     int exit_code;
 } ProcessResult;
 
+// Theme mode
+typedef enum {
+    THEME_DEFAULT = 0,
+    THEME_ROBBYRUSSELL = 1,
+    THEME_AGNOSTER = 2,
+    THEME_MINIMAL = 3,
+    THEME_PURE = 4,
+    THEME_NEON = 5,
+    THEME_DRACULA = 6,
+    THEME_MATRIX = 7,
+    THEME_CYBERPUNK = 8,
+    THEME_SUNSET = 9,
+    THEME_FOREST = 10,
+    THEME_OCEAN = 11,
+    THEME_RETRO = 12,
+    THEME_MONOKAI = 13,
+    THEME_POWERLEVEL = 14,
+    THEME_UBUNTU = 15,
+    THEME_KALI = 16,
+    THEME_ARCH = 17,
+    THEME_GENTOO = 18,
+    THEME_ROOT = 19,
+    THEME_DEBIAN = 20,
+    THEME_FEDORA = 21,
+    THEME_CENTOS = 22,
+    THEME_MANJARO = 23,
+    THEME_MINT = 24,
+    THEME_ALPINE = 25,
+    THEME_STARWARS = 26,
+    THEME_HACKER = 27,
+    THEME_GLITCH = 28,
+    THEME_ALIEN = 29,
+    THEME_MACOS = 30,
+    THEME_FREEBSD = 31,
+    THEME_SOLARIS = 32,
+    THEME_WINDOWS11 = 33,
+    THEME_MSDOS = 34,
+    THEME_FISH = 35,
+    THEME_ZSH_SIMPLE = 36,
+    THEME_BASH_SIMPLE = 37,
+    THEME_CLOUD = 38,
+    THEME_IRONMAN = 39
+} ThemeMode;
+
 // Application state
 typedef struct {
     char adb_path[MAX_PATH];
@@ -75,6 +119,7 @@ typedef struct {
     int current_fastboot_device_index;
     OperationMode current_mode;
     int verbose;
+    ThemeMode current_theme;
 } AppState;
 
 // Progress callback type

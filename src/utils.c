@@ -215,6 +215,31 @@ int LevenshteinDistance(const char* s1, const char* s2) {
     return result;
 }
 
+// Config persistence
+void SaveConfig(int theme) {
+    FILE* fp = fopen("adbfu.ini", "w");
+    if (fp) {
+        fprintf(fp, "[Settings]\n");
+        fprintf(fp, "Theme=%d\n", theme);
+        fclose(fp);
+    }
+}
+
+int LoadConfig(void) {
+    FILE* fp = fopen("adbfu.ini", "r");
+    if (!fp) return 0; // Default theme
+
+    int theme = 0;
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, "Theme=")) {
+            sscanf(line, "Theme=%d", &theme);
+        }
+    }
+    fclose(fp);
+    return theme;
+}
+
 // Path utilitiesJoin two path components
 void JoinPath(char* dest, size_t dest_size, const char* path1, const char* path2) {
     if (!dest || dest_size == 0) return;

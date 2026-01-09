@@ -32,10 +32,13 @@ int CmdReboot(AppState* state, const Command* cmd);
 int CmdRm(AppState* state, const Command* cmd);
 int CmdMkdir(AppState* state, const Command* cmd);
 int CmdSudo(AppState* state, const Command* cmd);
+int CmdLs(AppState* state, const Command* cmd);
+int CmdTheme(AppState* state, const Command* cmd);
 int CmdReboot(AppState* state, const Command* cmd);
 int CmdHelp(AppState* state, const Command* cmd);
 int CmdVersion(AppState* state, const Command* cmd);
 int CmdCls(AppState* state, const Command* cmd);
+int CmdCmd(AppState* state, const Command* cmd);
 
 // Fastboot command handlers
 int CmdFbDevices(AppState* state, const Command* cmd);
