@@ -168,6 +168,8 @@ int main(int argc, char* argv[]) {
         }
 
         printf("\nStarting batch processing...\n");
+        int module_install_choice = -1; // -1: Ask, 0: No (Push only), 1: Yes (Install)
+
         for (int i = 1; i < argc; i++) {
             const char* file_path = argv[i];
             const char* ext = strrchr(file_path, '.');
@@ -211,10 +213,28 @@ int main(int argc, char* argv[]) {
                     snprintf(seven_zip_path, sizeof(seven_zip_path), "%s\\7za.exe", state.temp_dir);
                     if (IsModuleZip(file_path, seven_zip_path)) {
                         printf("\nDetected Magisk/KSU/APatch Module.\n");
+                        
                         // Detect root solution
                         RootSolution sol = DetectRootSolution(&state);
+                        
                         if (sol != ROOT_NONE) {
-                            InstallRootModule(&state, remote_path, sol);
+                            // Ask user if we haven't yet
+                            if (module_install_choice == -1) {
+                                printf("Install this module? (y=install, n=push only): ");
+                                int ch = _getch();
+                                printf("%c\n", ch);
+                                if (ch == 'y' || ch == 'Y') {
+                                    module_install_choice = 1;
+                                } else {
+                                    module_install_choice = 0;
+                                }
+                            }
+
+                            if (module_install_choice == 1) {
+                                InstallRootModule(&state, remote_path, sol);
+                            } else {
+                                printf("Skipping module installation (Push only).\n");
+                            }
                         } else {
                             printf("No supported root solution (Magisk/KSU/APatch) detected. Module pushed but not installed.\n");
                         }

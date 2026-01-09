@@ -14,7 +14,7 @@
 #define MAX_PATH 260
 #define MAX_DEVICES 16
 #define BUFFER_SIZE 4096
-#define APP_VERSION "1.1.0"
+#define APP_VERSION "1.2.0"
 
 // Error codes
 typedef enum {

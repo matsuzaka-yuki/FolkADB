@@ -102,7 +102,7 @@ void ShowHelp(AppState* state) {
         printf("  info                     Show device information\n");
         printf("\n");
         printf("ADB File Operations:\n");
-        printf("  push <local> <remote>    Push file to device\n");
+        printf("  push <local> [remote]    Push file to device (default: /storage/emulated/0/)\n");
         printf("  pull <remote> [local]    Pull file from device\n");
         printf("  ls <remote_path>         List files on device\n");
         printf("  rm <remote_path>         Delete file on device\n");
@@ -354,7 +354,7 @@ static const Shortcut g_adb_shortcuts[] = {
     {"5", "reboot bootloader", "Reboot to bootloader"},
     {"6", "reboot recovery", "Reboot to recovery"},
     {"7", "install", "Install APK (requires path)"},
-    {"8", "push", "Push file (requires local remote)"},
+    {"8", "push", "Push file (requires local [remote])"},
     {"9", "pull", "Pull file (requires remote [local])"},
     {NULL, NULL, NULL}
 };
@@ -646,9 +646,17 @@ int CmdPush(AppState* state, const Command* cmd) {
     char local_path[MAX_PATH] = {0};
     char remote_path[MAX_PATH] = {0};
 
-    if (sscanf(cmd->args, "%s %s", local_path, remote_path) != 2) {
-        PrintError(ADB_ERROR_INVALID_COMMAND, "Usage: push <local> <remote>");
+    int count = sscanf(cmd->args, "%s %s", local_path, remote_path);
+
+    if (count < 1) {
+        PrintError(ADB_ERROR_INVALID_COMMAND, "Usage: push <local> [remote]");
         return 1;
+    }
+
+    if (count == 1) {
+        // Default to /storage/emulated/0/ if no remote path specified
+        strcpy(remote_path, "/storage/emulated/0/");
+        printf("No remote path specified, defaulting to: %s\n", remote_path);
     }
 
     return PushFile(state, local_path, remote_path);
@@ -1137,6 +1145,210 @@ void ClearLine() {
     }
 }
 
+static const char* ADB_COMMANDS[] = {
+    "devices", "dev", "select", "info", "push", "pull", "ls", "rm", "mkdir",
+    "shell", "sudo", "install", "uninstall", "reboot", "dli", "shizuku",
+    "help", "version", "cls", "exit", "quit", NULL
+};
+
+static const char* FASTBOOT_COMMANDS[] = {
+    "devices", "select", "info", "flash", "erase", "format", "unlock",
+    "lock", "oem", "reboot", "getvar", "activate", "wipe",
+    "help", "version", "cls", "exit", "quit", NULL
+};
+
+static const char* REBOOT_MODES[] = {
+    "system", "bootloader", "recovery", "fastboot", "edl", NULL
+};
+
+static const char* FLASH_PARTITIONS[] = {
+    "boot", "recovery", "system", "userdata", "vbmeta", "vendor", 
+    "init_boot", "vendor_boot", "dtbo", "super", "radio", "modem", NULL
+};
+
+static void HandleTabCompletion(AppState* state, char* input, int* input_pos) {
+    // 1. Find the word being typed (last word segment)
+    // We assume the cursor is at the end of input
+    char* start_of_word = input + *input_pos;
+    while (start_of_word > input && !isspace(*(start_of_word - 1))) {
+        start_of_word--;
+    }
+    
+    int word_len = (int)(input + *input_pos - start_of_word);
+    char word_to_complete[256];
+    if (word_len >= sizeof(word_to_complete)) return;
+    strncpy(word_to_complete, start_of_word, word_len);
+    word_to_complete[word_len] = '\0';
+
+    // 2. Determine context (what is before start_of_word?)
+    // Scan backwards from start_of_word to find previous word
+    char* prev_word_end = start_of_word;
+    while (prev_word_end > input && isspace(*(prev_word_end - 1))) {
+        prev_word_end--;
+    }
+    
+    char prev_word[64] = {0};
+    
+    if (prev_word_end > input) {
+        // There is a previous word
+        char* prev_word_start = prev_word_end;
+        while (prev_word_start > input && !isspace(*(prev_word_start - 1))) {
+            prev_word_start--;
+        }
+        
+        int prev_len = (int)(prev_word_end - prev_word_start);
+        if (prev_len < sizeof(prev_word)) {
+            strncpy(prev_word, prev_word_start, prev_len);
+            prev_word[prev_len] = '\0';
+        }
+    }
+
+    // 3. Select candidates
+    const char* matches[64];
+    int match_count = 0;
+    
+    if (strlen(prev_word) == 0) {
+        // Root command: Use current mode commands + extras
+        const char** mode_cmds = (state->current_mode == MODE_FASTBOOT) ? FASTBOOT_COMMANDS : ADB_COMMANDS;
+        static const char* ROOT_EXTRAS[] = { "adb", "fastboot", NULL };
+        
+        // Add mode commands
+        for (int i = 0; mode_cmds[i] != NULL; i++) {
+            if (strncmp(word_to_complete, mode_cmds[i], word_len) == 0) {
+                if (match_count < 64) matches[match_count++] = mode_cmds[i];
+            }
+        }
+        // Add extras (adb, fastboot)
+        for (int i = 0; ROOT_EXTRAS[i] != NULL; i++) {
+            if (strncmp(word_to_complete, ROOT_EXTRAS[i], word_len) == 0) {
+                // Check duplicate
+                int dup = 0;
+                for(int j=0; j<match_count; j++) if(strcmp(matches[j], ROOT_EXTRAS[i])==0) dup=1;
+                if (!dup && match_count < 64) matches[match_count++] = ROOT_EXTRAS[i];
+            }
+        }
+    } else if (strcmp(prev_word, "adb") == 0) {
+        // ADB Subcommands
+        for (int i = 0; ADB_COMMANDS[i] != NULL; i++) {
+            if (strncmp(word_to_complete, ADB_COMMANDS[i], word_len) == 0) {
+                if (match_count < 64) matches[match_count++] = ADB_COMMANDS[i];
+            }
+        }
+    } else if (strcmp(prev_word, "fastboot") == 0) {
+        // Fastboot Subcommands
+        for (int i = 0; FASTBOOT_COMMANDS[i] != NULL; i++) {
+            if (strncmp(word_to_complete, FASTBOOT_COMMANDS[i], word_len) == 0) {
+                if (match_count < 64) matches[match_count++] = FASTBOOT_COMMANDS[i];
+            }
+        }
+    } else if (strcmp(prev_word, "reboot") == 0) {
+        // Reboot modes
+        for (int i = 0; REBOOT_MODES[i] != NULL; i++) {
+            if (strncmp(word_to_complete, REBOOT_MODES[i], word_len) == 0) {
+                if (match_count < 64) matches[match_count++] = REBOOT_MODES[i];
+            }
+        }
+    } else if (strcmp(prev_word, "flash") == 0 || strcmp(prev_word, "erase") == 0 || strcmp(prev_word, "format") == 0 || strcmp(prev_word, "wipe") == 0) {
+        // Partitions
+        for (int i = 0; FLASH_PARTITIONS[i] != NULL; i++) {
+            if (strncmp(word_to_complete, FLASH_PARTITIONS[i], word_len) == 0) {
+                if (match_count < 64) matches[match_count++] = FLASH_PARTITIONS[i];
+            }
+        }
+    }
+
+    if (match_count == 0) {
+        // No matches found, try fuzzy matching (typo correction)
+        const char* best_match = NULL;
+        int min_dist = 999;
+        
+        // Define candidates list again (union of all possible commands for this context)
+        const char* candidates[128];
+        int candidate_count = 0;
+
+        if (strlen(prev_word) == 0) {
+            const char** mode_cmds = (state->current_mode == MODE_FASTBOOT) ? FASTBOOT_COMMANDS : ADB_COMMANDS;
+            static const char* ROOT_EXTRAS[] = { "adb", "fastboot", NULL };
+            for (int i = 0; mode_cmds[i] != NULL; i++) candidates[candidate_count++] = mode_cmds[i];
+            for (int i = 0; ROOT_EXTRAS[i] != NULL; i++) candidates[candidate_count++] = ROOT_EXTRAS[i];
+        } else if (strcmp(prev_word, "adb") == 0) {
+            for (int i = 0; ADB_COMMANDS[i] != NULL; i++) candidates[candidate_count++] = ADB_COMMANDS[i];
+        } else if (strcmp(prev_word, "fastboot") == 0) {
+            for (int i = 0; FASTBOOT_COMMANDS[i] != NULL; i++) candidates[candidate_count++] = FASTBOOT_COMMANDS[i];
+        } else if (strcmp(prev_word, "reboot") == 0) {
+            for (int i = 0; REBOOT_MODES[i] != NULL; i++) candidates[candidate_count++] = REBOOT_MODES[i];
+        } else if (strcmp(prev_word, "flash") == 0 || strcmp(prev_word, "erase") == 0 || strcmp(prev_word, "format") == 0 || strcmp(prev_word, "wipe") == 0) {
+             for (int i = 0; FLASH_PARTITIONS[i] != NULL; i++) candidates[candidate_count++] = FLASH_PARTITIONS[i];
+        }
+
+        for (int i = 0; i < candidate_count; i++) {
+            int dist = LevenshteinDistance(word_to_complete, candidates[i]);
+            if (dist != -1 && dist < min_dist) {
+                min_dist = dist;
+                best_match = candidates[i];
+            }
+        }
+
+        // Heuristic: If distance is small enough relative to string length
+        // e.g., distance <= 2 for strings > 3 chars
+        if (best_match && strlen(word_to_complete) >= 2) {
+            int threshold = 2;
+            if (strlen(word_to_complete) > 5) threshold = 3;
+            
+            if (min_dist <= threshold) {
+                 // Suggest correction
+                 // Don't auto-replace immediately, just treat as single match logic
+                 matches[0] = best_match;
+                 match_count = 1;
+            }
+        }
+
+        if (match_count == 0) return;
+    }
+
+    if (match_count == 1) {
+        // Single match - complete it
+        // We need to replace the part after start_of_word with the match
+        strcpy(start_of_word, matches[0]);
+        strcat(input, " "); 
+        *input_pos = (int)strlen(input);
+    } else {
+        // Multiple matches - list them
+        printf("\n");
+        for (int i = 0; i < match_count; i++) {
+            printf("%s  ", matches[i]);
+        }
+        printf("\n");
+        
+        // Find common prefix to complete as much as possible
+        int prefix_len = word_len;
+        while (1) {
+            char c = matches[0][prefix_len];
+            if (c == '\0') break; // End of first match
+            
+            int all_match = 1;
+            for (int i = 1; i < match_count; i++) {
+                if (matches[i][prefix_len] != c) {
+                    all_match = 0;
+                    break;
+                }
+            }
+            
+            if (all_match) {
+                start_of_word[prefix_len - word_len] = c; // Not quite right indexing
+                // Let's just append to input
+                input[*input_pos] = c;
+                *input_pos += 1;
+                input[*input_pos] = '\0';
+                
+                prefix_len++;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
 // Run interactive loop
 void RunInteractiveLoop(AppState* state) {
     char input[4096] = {0};
@@ -1280,6 +1492,11 @@ void RunInteractiveLoop(AppState* state) {
                                 input[input_pos] = '\0';
                                 needs_repaint = 1;
                             }
+                        }
+                        // Handle Tab
+                        else if (vk == VK_TAB) {
+                             HandleTabCompletion(state, input, &input_pos);
+                             needs_repaint = 1;
                         }
                         // Handle Up/Down Arrows
                         else if (vk == VK_UP || vk == VK_DOWN) {

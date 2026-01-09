@@ -175,7 +175,47 @@ int StringStartsWith(const char* str, const char* prefix) {
     return strncmp(str, prefix, strlen(prefix)) == 0;
 }
 
-// Join two path components
+// Calculate Levenshtein distance between two strings
+int LevenshteinDistance(const char* s1, const char* s2) {
+    int len1 = (int)strlen(s1);
+    int len2 = (int)strlen(s2);
+    
+    // Allocate matrix
+    // Using a flat array for simplicity: matrix[i][j] -> matrix[i * (len2 + 1) + j]
+    int* matrix = (int*)malloc((len1 + 1) * (len2 + 1) * sizeof(int));
+    if (!matrix) return -1; // Memory error
+
+    // Initialize first row and column
+    for (int i = 0; i <= len1; i++) {
+        matrix[i * (len2 + 1)] = i;
+    }
+    for (int j = 0; j <= len2; j++) {
+        matrix[j] = j;
+    }
+
+    // Fill matrix
+    for (int i = 1; i <= len1; i++) {
+        for (int j = 1; j <= len2; j++) {
+            int cost = (s1[i - 1] == s2[j - 1]) ? 0 : 1;
+            
+            int del = matrix[(i - 1) * (len2 + 1) + j] + 1;
+            int ins = matrix[i * (len2 + 1) + (j - 1)] + 1;
+            int sub = matrix[(i - 1) * (len2 + 1) + (j - 1)] + cost;
+
+            int min_val = del;
+            if (ins < min_val) min_val = ins;
+            if (sub < min_val) min_val = sub;
+
+            matrix[i * (len2 + 1) + j] = min_val;
+        }
+    }
+
+    int result = matrix[len1 * (len2 + 1) + len2];
+    free(matrix);
+    return result;
+}
+
+// Path utilitiesJoin two path components
 void JoinPath(char* dest, size_t dest_size, const char* path1, const char* path2) {
     if (!dest || dest_size == 0) return;
 

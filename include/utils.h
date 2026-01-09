@@ -8,6 +8,7 @@ char* TrimString(char* str);
 char* SplitString(char* str, char delimiter);
 void StringToLower(char* str);
 int StringStartsWith(const char* str, const char* prefix);
+int LevenshteinDistance(const char* s1, const char* s2);
 
 // Path utilities
 void JoinPath(char* dest, size_t dest_size, const char* path1, const char* path2);
