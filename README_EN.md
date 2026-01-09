@@ -17,9 +17,15 @@ The program automatically extracts and configures the required ADB and Fastboot 
 FolkADB provides a shell-like interactive environment where you no longer need to type the `adb` or `fastboot` prefix every time, although standard commands with `adb` or `fastboot` prefixes are also supported.
 *   **Direct Commands**: Directly input commands like `ls`, `rm`, `install`, `shell`, etc.
 *   **Shortcuts**: Provides numeric shortcuts (1-9) for quick execution of common operations. Type `s` and press Enter in the command line to view all shortcuts.
+*   **Tab Auto-Completion**: Supports Tab key auto-completion for commands, parameters, and device partition paths. After typing a partial command, press Tab to auto-complete or display matching options. Built-in fuzzy matching and spell correction features allow intelligent recognition even with minor input errors.
 *   **Shell Mode**: In ADB mode, type `shell` and press Enter to enter Shell mode. In Shell mode, you can directly input Shell commands. Type `exit` and press Enter to exit Shell mode. While in Shell mode, you can type `su` and press Enter to elevate to a root shell. Alternatively, you can use `sudo <command>` to temporarily elevate privileges for a single command. For example, `sudo /data/adb/apd module install 1.zip` uses this temporary privilege elevation to call the APatch daemon for module installation.
 
 ### 3. Advanced Features (Please grant root permission to the shell app in your Root Manager)
+
+#### 🎨 Theme Switching
+Built-in 40 carefully designed terminal theme styles with support for personalization.
+*   **Usage**: Type `theme` and press Enter to enter the theme selection interface, or use `theme <number>` to directly switch to a specific theme.
+*   **Features**: Each theme has a unique color scheme. Configuration is automatically saved and applied on the next startup. Themes affect the color and style of the command line prompt.
 
 #### ⚡ Sudo Privilege Escalation
 In the interactive Shell, a `sudo` command is built-in.
@@ -42,6 +48,11 @@ Supports automated installation of Root modules.
 
 #### 📂 File Transfer
 *   **Drag & Drop Transfer**: Drag ordinary files onto the `FolkAdb.exe` icon to automatically push them to the device's `/storage/emulated/0/` directory. Supports multiple file selection. If a ZIP file is detected as a module, you will be asked whether to install it.
+
+#### 🔧 Shizuku Activation
+Supports one-click activation of the Shizuku app.
+*   **Usage**: Type `shizuku` and press Enter in the interactive command line.
+*   **Function**: Automatically detects the installation status of the Shizuku app on the device and executes the activation command, making it convenient to use the API permissions provided by Shizuku.
 
 ## Build and Run
 
