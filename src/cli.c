@@ -118,6 +118,7 @@ void ShowHelp(AppState* state) {
         printf("  uninstall <package>      Uninstall package\n");
         printf("  reboot [mode]            Reboot device (system/recovery/bootloader)\n");
         printf("  dli <url>                Download, push and install module from URL\n");
+        printf("  shizuku                  Activate Shizuku (requires installed app)\n");
     } else {
         printf("Fastboot Commands:\n");
         printf("  devices           List fastboot devices\n");
@@ -255,6 +256,8 @@ static int DispatchAdbSubcommand(AppState* state, const char* subcommand, const 
         return CmdReboot(state, &subcmd);
     } else if (strcmp(subcommand, "dli") == 0) {
         return CmdDli(state, &subcmd);
+    } else if (strcmp(subcommand, "shizuku") == 0) {
+        return CmdShizuku(state, &subcmd);
     }
 
     return 0; // Not an ADB command
@@ -264,7 +267,7 @@ static int DispatchAdbSubcommand(AppState* state, const char* subcommand, const 
 int CmdAdb(AppState* state, const Command* cmd) {
     if (strlen(cmd->args) == 0) {
         printf("Usage: adb <command> [args...]\n");
-        printf("Commands: devices, select, info, push, pull, ls, rm, mkdir, shell, install, uninstall, reboot, dli\n");
+        printf("Commands: devices, select, info, push, pull, ls, rm, mkdir, shell, install, uninstall, reboot, dli, shizuku\n");
         return 1;
     }
 
@@ -814,6 +817,87 @@ int CmdSudo(AppState* state, const Command* cmd) {
     }
 
     FreeProcessResult(result);
+    return 1;
+}
+
+// Command: shizuku
+int CmdShizuku(AppState* state, const Command* cmd) {
+    AdbDevice* device = GetSelectedDevice(state);
+    if (!device) {
+        PrintError(ADB_ERROR_NO_DEVICE, NULL);
+        return 1;
+    }
+
+    printf("Activating Shizuku...\n");
+
+    // 1. Get package path
+    // adb shell pm path moe.shizuku.privileged.api
+    ProcessResult* res = AdbShellCommand(state->adb_path, device->serial_id, "pm path moe.shizuku.privileged.api");
+    if (!res || res->exit_code != 0 || !res->stdout_data || strlen(res->stdout_data) == 0) {
+        PrintError(ADB_ERROR_UNKNOWN, "Shizuku app not found (package: moe.shizuku.privileged.api)");
+        if (res) FreeProcessResult(res);
+        return 1;
+    }
+
+    // Output: package:/data/app/~~.../base.apk
+    char* path_start = strstr(res->stdout_data, "package:");
+    if (!path_start) {
+        PrintError(ADB_ERROR_UNKNOWN, "Unexpected output from pm path");
+        FreeProcessResult(res);
+        return 1;
+    }
+    path_start += 8; // Skip "package:"
+
+    // Find end of line
+    char* newline = strchr(path_start, '\n');
+    if (newline) *newline = '\0';
+    
+    // Trim whitespace
+    TrimString(path_start);
+
+    // Remove /base.apk suffix
+    char* base_apk = strstr(path_start, "/base.apk");
+    if (base_apk) {
+        *base_apk = '\0';
+    } else {
+        // Fallback: If not base.apk, try to strip the last file component (the apk name)
+        char* last_slash = strrchr(path_start, '/');
+        if (last_slash) {
+            *last_slash = '\0';
+        }
+    }
+
+    // Construct library path
+    // Note: We try arm64 first as most modern devices are 64-bit.
+    // Ideally we should check device ABI but this is a good heuristic for now.
+    char lib_path[512];
+    snprintf(lib_path, sizeof(lib_path), "%s/lib/arm64/libshizuku.so", path_start);
+
+    printf("Found Shizuku path: %s\n", path_start);
+    FreeProcessResult(res);
+
+    // 2. Execute library
+    printf("Executing: %s\n", lib_path);
+    res = AdbShellCommand(state->adb_path, device->serial_id, lib_path);
+    if (!res) {
+        PrintError(ADB_ERROR_CONNECTION_FAILED, "Failed to execute activation command");
+        return 1;
+    }
+
+    if (res->stdout_data && strlen(res->stdout_data) > 0) {
+        printf("%s\n", res->stdout_data);
+    }
+    if (res->stderr_data && strlen(res->stderr_data) > 0) {
+        fprintf(stderr, "%s\n", res->stderr_data);
+    }
+
+    if (res->exit_code == 0) {
+        printf("Shizuku activation command executed successfully.\n");
+    } else {
+        printf("Shizuku activation command finished with exit code %d.\n", res->exit_code);
+    }
+
+    FreeProcessResult(res);
     return 1;
 }
 
