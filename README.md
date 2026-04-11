@@ -2,7 +2,7 @@
   <img src="resources/app.ico" width="128" height="128" />
   <h1>FolkADB</h1>
   <p>
-    <strong>简体中文</strong> | <a href="README_EN.md">English</a>
+    <strong>简体中文</strong> | <a href="README_EN.md">English</a> | <a href="README_JA.md">日本語</a>
   </p>
 </div>
 
