@@ -45,12 +45,12 @@ root モジュールの自動インストールをサポートしています。
 *   **プロセス**: プログラムは APK ファイルを自動的に識別して、インストールするかどうかを確認するメッセージを表示します。確認後にインストールプロセスは自動で完了します。
 
 #### 📂 ファイル転送
-*   **ドラッグ & ドロップで転送**: Drag ordinary files onto the `FolkAdb.exe` icon to automatically push them to the device's `/storage/emulated/0/` directory. Supports multiple file selection. If a ZIP file is detected as a module, you will be asked whether to install it.
+*   **ドラッグ & ドロップで転送**: 通常のファイルを `FolkADB.exe` アイコンにドラッグするとデバイスの `/storage/emulated/0/` ディレクトリに自動で転送します。複数ファイルの選択にも対応しています。ZIP ファイルがモジュールとして検出された場合は、インストールするかどうかを確認します。
 
 #### 🔧 Shizuku の有効化
-Supports one-click activation of the Shizuku app.
-*   **使用方法**: Type `shizuku` and press Enter in the interactive command line.
-*   **ファンクション**: Automatically detects the installation status of the Shizuku app on the device and executes the activation command, making it convenient to use the API permissions provided by Shizuku.
+Shizuku アプリのワンクリック機能に対応。
+*   **使用方法**: 対話型コマンドラインで `shizuku` と入力で Enter キーを押してください。
+*   **ファンクション**: デバイス上の Shizuku アプリのインストール状況を自動検出し、有効化コマンドを実行することで Shizuku が提供する API 権限を便利に利用可能にします。
 
 ## ビルドと実行
 
@@ -59,7 +59,7 @@ Supports one-click activation of the Shizuku app.
 *   C コンパイラー (例: GCC/MinGW)
 
 ### ビルド
-Run the following command in the project root directory:
+プロジェクトのルートディレクトリで以下のコマンドを実行:
 ```cmd
 build.bat
 ```
@@ -68,7 +68,7 @@ build.bat
 ```cmd
 run.bat
 ```
-Or run `build/FolkAdb.exe` directly.
+または `build/FolkAdb.exe` を直接実行してください。
 
-## License
-This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+## ライセンス
+このプロジェクトは Apache 2.0 ライセンスに基づいています。詳細は [LICENSE](LICENSE) ファイルを参照してください。
