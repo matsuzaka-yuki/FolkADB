@@ -36,13 +36,13 @@ FolkADB はシェルに似た対話型環境を提供するために、毎回 `a
 *   **使用方法**: `dli <URL>`
 *   **ファンクション**: ファイルを自動的にダウンロードし、デバイスに Push して検出された root ソリューションに従ってインストールします。
 #### 🧩 モジュールのインストール (Magisk/KernelSU/APatch)
-Supports automated installation of Root modules.
-*   **ドラッグ & ドロップでインストール**: Drag a module zip file (`.zip`) directly onto the `FolkAdb.exe` icon. The program will automatically identify the module type and invoke the corresponding installation logic.
-*   **スマート検出**: Automatically identifies Magisk, KernelSU, or APatch/FolkPatch environments and calls the appropriate installation logic.
+root モジュールの自動インストールをサポートしています。
+*   **ドラッグ & ドロップでインストール**: モジュールの zip ファイル (`.zip`) を `FolkADB.exe` アイコンに直接でドラッグしてください。プログラムが自動的にモジュールの種類を識別し、対応するインストール処理を実行します。
+*   **スマート検出**: Magisk、KernelSU または APatch/FolkPatch の環境を自動的に識別して適切なインストールロジックを呼び出します。
 
 #### 📱 APK をドラッグ&ドロップでインストール
-*   **操作**: Drag an `.apk` file directly onto the `FolkAdb.exe` icon or the running window (The window method supports single APK installation, while the icon method supports multiple APKs).
-*   **プロセス**: The program automatically identifies the APK file and asks whether to install it. Upon confirmation, the installation process completes automatically.
+*   **操作**: `.apk` ファイルを `FolkADB.exe` アイコンまたは実行中のウィンドウに直接でドラッグします (ウィンドウ方式は単一の APK ファイルのインストールをサポート、アイコン方式は複数の APK ファイルのインストールをサポート)。
+*   **プロセス**: プログラムは APK ファイルを自動的に識別して、インストールするかどうかを確認するメッセージを表示します。確認後にインストールプロセスは自動で完了します。
 
 #### 📂 ファイル転送
 *   **ドラッグ & ドロップで転送**: Drag ordinary files onto the `FolkAdb.exe` icon to automatically push them to the device's `/storage/emulated/0/` directory. Supports multiple file selection. If a ZIP file is detected as a module, you will be asked whether to install it.
