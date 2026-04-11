@@ -6,67 +6,65 @@
   </p>
 </div>
 
-FolkADB is a portable Android Debug Bridge (ADB) and Fastboot utility designed to simplify Android device management and debugging. Written in C, it requires no cumbersome environment configuration and works out of the box.
+FolkADB は Android デバイスの管理とデバッグを簡素化するために設計された、ポータブルな Android デバッグブリッジ (ADB) および Fastboot ユーティリティです。C 言語で書かれており、面倒な環境設定が不要かつ、すぐに使用可能になっています。
 
-## Core Features
+## コア機能
 
-### 1. Portable & Auto-Configuration
-The program automatically extracts and configures the required ADB and Fastboot environment upon startup, eliminating the need for users to manually set system environment variables. It supports automatic detection of device modes (ADB/Fastboot) and automatic connection. Type `help` and press Enter to view all commands.
+### 1. ポータブルと自動構成
+このプログラムは自動時に必要な ADB および Fastboot の環境を自動的に抽出して構成するため、ユーザーがシステム環境変数を手動で設定する必要がありません。デバイスモード (ADB/Fastboot) の自動検出と自動接続をサポートしています。すべてのコマンドを表示するには `help` と入力して Enter キーを押してください。
 
-### 2. Interactive CLI & Command Simplification
-FolkADB provides a shell-like interactive environment where you no longer need to type the `adb` or `fastboot` prefix every time, although standard commands with `adb` or `fastboot` prefixes are also supported.
-*   **Direct Commands**: Directly input commands like `ls`, `rm`, `install`, `shell`, etc.
-*   **Shortcuts**: Provides numeric shortcuts (1-9) for quick execution of common operations. Type `s` and press Enter in the command line to view all shortcuts.
-*   **Tab Auto-Completion**: Supports Tab key auto-completion for commands, parameters, and device partition paths. After typing a partial command, press Tab to auto-complete or display matching options. Built-in fuzzy matching and spell correction features allow intelligent recognition even with minor input errors.
-*   **Shell Mode**: In ADB mode, type `shell` and press Enter to enter Shell mode. In Shell mode, you can directly input Shell commands. Type `exit` and press Enter to exit Shell mode. While in Shell mode, you can type `su` and press Enter to elevate to a root shell. Alternatively, you can use `sudo <command>` to temporarily elevate privileges for a single command. For example, `sudo /data/adb/apd module install 1.zip` uses this temporary privilege elevation to call the APatch daemon for module installation.
+### 2. 対話型 CLI とコマンドの簡素化
+FolkADB はシェルに似た対話型環境を提供するために、毎回 `adb` や `fastboot` という接頭辞を入力する必要がありません。ただし、`adb` や `fastboot` という接頭辞が付く標準のコマンドもサポートしています。
+*   **直接コマンド**: `ls`、 `rm`、 `install`、 `shell` などのコマンドを直接入力します。
+*   **ショートカット**: よく使用する操作を素早く実行するための数字ショートカット (1～9) を提供します。コマンドラインで `s` と入力で Enter を押すとすべてのショートカットが表示されます。
+*   **Tab の自動補完**: コマンド、パラメータ、およびデバイスパーティションパスの Tab キーによる自動補完に対応しています。コマンドの一部を入力後に Tab キーを押すと自動補完または一致する候補が表示されます。内蔵のあいまい一致機能とスペル修正機能により、軽微な入力ミスでも正確に認識できます。
+*   **シェルモード**: ADB モードで `shell` と入力で Enter キーを押すとシェルモードになります。シェルモードは、シェルコマンドを直接入力できます。`exit` と入力で Enter キーを押すとシェルモードを終了します。シェルモード中に `su` を入力して Enter キーを押すと root シェルに昇格できます。または、`sudo <コマンド>` を使用して単一のコマンドに対して、一時的に権限を昇格することもできます。例えば、`sudo /data/adb/apd module install 1.zip` で一時的な権限昇格を使用してモジュールのインストールで APatch デーモンを呼び出すことができます。 
 
-### 3. Advanced Features (Please grant root permission to the shell app in your Root Manager)
+### 3. 高度な機能 (root マネージャーでシェルアプリに root 権限を付与してください)
 
-#### 🎨 Theme Switching
-Built-in 40 carefully designed terminal theme styles with support for personalization.
-*   **Usage**: Type `theme` and press Enter to enter the theme selection interface, or use `theme <number>` to directly switch to a specific theme.
-*   **Features**: Each theme has a unique color scheme. Configuration is automatically saved and applied on the next startup. Themes affect the color and style of the command line prompt.
+#### 🎨 テーマの切り替え
+パーソナライズに対応な厳選された 40 種のターミナルテーマスタイルを内蔵しています。
+*   **使用方法**: `theme` と入力で Enter キーを押すとテーマ選択画面が表示されます。または `theme <番号>` と入力で特定のテーマに直接的に切り替えができます。
+*   **機能**: 各テーマには独自の配色があります。設定は自動的に保存され、次回の起動時に適用されます。テーマはコマンドラインプロンプトの色とスタイルに影響します。
 
-#### ⚡ Sudo Privilege Escalation
-In the interactive Shell, a `sudo` command is built-in.
-*   **Usage**: `sudo <command>`
-*   **Function**: Automatically executes the command via `su -c`, facilitating the quick execution of commands requiring root privileges in a non-root shell environment.
-
-#### 📥 DLI Download & Install
-Built-in `dli` (Download & Install) command supports installing modules directly from a URL.
-*   **Usage**: `dli <url>`
-*   **Function**: Automatically downloads the file, pushes it to the device, and installs it according to the detected Root solution.
-
-#### 🧩 Module Installation (Magisk/KernelSU/APatch)
+#### ⚡ Sudo による権限昇格
+対話型シェルでは `sudo` コマンドが組み込まれています。
+*   **使用方法**: `sudo <コマンド>`
+*   **ファンクション**: `su -c` を介してコマンドを自動実行し、root 権限を必要とするコマンドを非 root シェル環境で迅速に実行可能にします。
+#### 📥 DLI ダウンロードとインストール
+組み込みの `dli` (ダウンロードとインストール) コマンドは URL から直接的なモジュールのインストールをサポートしています。
+*   **使用方法**: `dli <URL>`
+*   **ファンクション**: ファイルを自動的にダウンロードし、デバイスに Push して検出された root ソリューションに従ってインストールします。
+#### 🧩 モジュールのインストール (Magisk/KernelSU/APatch)
 Supports automated installation of Root modules.
-*   **Drag & Drop Install**: Drag a module zip file (`.zip`) directly onto the `FolkAdb.exe` icon. The program will automatically identify the module type and invoke the corresponding installation logic.
-*   **Smart Detection**: Automatically identifies Magisk, KernelSU, or APatch/FolkPatch environments and calls the appropriate installation logic.
+*   **ドラッグ & ドロップでインストール**: Drag a module zip file (`.zip`) directly onto the `FolkAdb.exe` icon. The program will automatically identify the module type and invoke the corresponding installation logic.
+*   **スマート検出**: Automatically identifies Magisk, KernelSU, or APatch/FolkPatch environments and calls the appropriate installation logic.
 
-#### 📱 APK Drag & Drop Install
-*   **Operation**: Drag an `.apk` file directly onto the `FolkAdb.exe` icon or the running window (The window method supports single APK installation, while the icon method supports multiple APKs).
-*   **Process**: The program automatically identifies the APK file and asks whether to install it. Upon confirmation, the installation process completes automatically.
+#### 📱 APK をドラッグ&ドロップでインストール
+*   **操作**: Drag an `.apk` file directly onto the `FolkAdb.exe` icon or the running window (The window method supports single APK installation, while the icon method supports multiple APKs).
+*   **プロセス**: The program automatically identifies the APK file and asks whether to install it. Upon confirmation, the installation process completes automatically.
 
-#### 📂 File Transfer
-*   **Drag & Drop Transfer**: Drag ordinary files onto the `FolkAdb.exe` icon to automatically push them to the device's `/storage/emulated/0/` directory. Supports multiple file selection. If a ZIP file is detected as a module, you will be asked whether to install it.
+#### 📂 ファイル転送
+*   **ドラッグ & ドロップで転送**: Drag ordinary files onto the `FolkAdb.exe` icon to automatically push them to the device's `/storage/emulated/0/` directory. Supports multiple file selection. If a ZIP file is detected as a module, you will be asked whether to install it.
 
-#### 🔧 Shizuku Activation
+#### 🔧 Shizuku の有効化
 Supports one-click activation of the Shizuku app.
-*   **Usage**: Type `shizuku` and press Enter in the interactive command line.
-*   **Function**: Automatically detects the installation status of the Shizuku app on the device and executes the activation command, making it convenient to use the API permissions provided by Shizuku.
+*   **使用方法**: Type `shizuku` and press Enter in the interactive command line.
+*   **ファンクション**: Automatically detects the installation status of the Shizuku app on the device and executes the activation command, making it convenient to use the API permissions provided by Shizuku.
 
-## Build and Run
+## ビルドと実行
 
-### Requirements
+### 必須
 *   Windows OS
-*   C Compiler (e.g., GCC/MinGW)
+*   C コンパイラー (例: GCC/MinGW)
 
-### Build
+### ビルド
 Run the following command in the project root directory:
 ```cmd
 build.bat
 ```
 
-### Run
+### 実行
 ```cmd
 run.bat
 ```
